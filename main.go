@@ -5,12 +5,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 const (
 	BaseURL                 = "https://ground.brpsystems.com/brponline/api/ver3/apps/390/groupactivities"
 	Facility_GroenloekkeVej = "4"
 )
+
+type Dates struct {
+	Start string
+	End   string
+}
 
 type LocationData struct {
 	ID   int    `json:"id"`
@@ -48,11 +54,14 @@ func main() {
 	if err != nil {
 		println(err)
 	}
+
+	dates := BuildWeekDates()
+
 	q := url.Query()
 	q.Set("businessUnit", Facility_GroenloekkeVej)
 	q.Set("groupActivitiesFor", "web")
-	q.Set("period.end", "2025-09-28T21:59:59.999Z")
-	q.Set("period.start", "2025-09-22T17:55:27.866Z")
+	q.Set("period.end", dates.End)
+	q.Set("period.start", dates.Start)
 	q.Set("webCategory", "2")
 	url.RawQuery = q.Encode()
 
@@ -68,4 +77,29 @@ func main() {
 		fmt.Printf("ID: %d | Name: %s | Place: %s | Start: %s | End: %s\n",
 			c.ID, c.Name, c.Locations[0].Name, c.Duration.Start, c.Duration.End)
 	}
+}
+
+func BuildWeekDates() Dates {
+	now := time.Now().UTC()
+
+	offset := int(now.Weekday() - time.Monday)
+	if offset < 0 {
+		offset = 6 // handle sunday = 0
+	}
+	startOfWeek := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).
+		AddDate(0, 0, -offset)
+
+	endOfWeek := startOfWeek.AddDate(0, 0, 6).
+		Add(time.Hour*23 + time.Minute*59 + time.Second*59 + time.Millisecond*999)
+
+	layout := "2006-01-02T15:04:05.000Z"
+	periodStart := startOfWeek.Format(layout)
+	periodEnd := endOfWeek.Format(layout)
+
+	returnVal := Dates{
+		Start: periodStart,
+		End:   periodEnd,
+	}
+
+	return returnVal
 }

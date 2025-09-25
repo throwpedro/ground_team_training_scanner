@@ -82,19 +82,14 @@ func main() {
 func BuildWeekDates() Dates {
 	now := time.Now().UTC()
 
-	offset := int(now.Weekday() - time.Monday)
-	if offset < 0 {
-		offset = 6 // handle sunday = 0
-	}
-	startOfWeek := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).
-		AddDate(0, 0, -offset)
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 
-	endOfWeek := startOfWeek.AddDate(0, 0, 6).
+	end := start.AddDate(0, 0, 6).
 		Add(time.Hour*23 + time.Minute*59 + time.Second*59 + time.Millisecond*999)
 
 	layout := "2006-01-02T15:04:05.000Z"
-	periodStart := startOfWeek.Format(layout)
-	periodEnd := endOfWeek.Format(layout)
+	periodStart := start.Format(layout)
+	periodEnd := end.Format(layout)
 
 	returnVal := Dates{
 		Start: periodStart,

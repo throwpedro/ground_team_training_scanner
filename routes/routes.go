@@ -35,11 +35,13 @@ type ReturnData struct {
 }
 
 type ResponseData struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	StartTime string `json:"start_time"`
-	EndTime   string `json:"end_time"`
-	Area      string `json:"area"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	StartTime   string `json:"start_time"`
+	StartTimeDK string `json:"start_time_dk"`
+	EndTime     string `json:"end_time"`
+	EndTimeDK   string `json:"end_time_dk"`
+	Area        string `json:"area"`
 }
 
 func GetGroundTimes(w http.ResponseWriter, r *http.Request) {
@@ -58,13 +60,15 @@ func GetGroundTimes(w http.ResponseWriter, r *http.Request) {
 	var responseData []ResponseData
 
 	for _, c := range fitnessClasses {
-		if c.Locations[0].Name == "Funktionelt Område" {
+		if c.Locations[0].Name == "Funktionelt Område" || c.Locations[0].ID == 201 {
 			responseData = append(responseData, ResponseData{
-				ID:        c.ID,
-				Name:      c.Name,
-				Area:      c.Locations[0].Name,
-				StartTime: c.Duration.Start,
-				EndTime:   c.Duration.End,
+				ID:          c.ID,
+				Name:        c.Name,
+				Area:        c.Locations[0].Name,
+				StartTime:   c.Duration.Start,
+				StartTimeDK: DkTime(c.Duration.Start),
+				EndTime:     c.Duration.End,
+				EndTimeDK:   DkTime(c.Duration.End),
 			})
 		}
 	}
@@ -73,6 +77,19 @@ func GetGroundTimes(w http.ResponseWriter, r *http.Request) {
 	if err = json.NewEncoder(w).Encode(responseData); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func DkTime(timeStr string) string {
+	utcTime, err := time.Parse("2006-01-02T15:04:05.000Z", timeStr)
+	if err != nil {
+		println(err)
+	}
+	timeLocation, err := time.LoadLocation("Europe/Copenhagen")
+	if err != nil {
+		println(err)
+	}
+	dkTime := utcTime.In(timeLocation)
+	return dkTime.Format("2006-01-02 15:04:05.000 MST")
 }
 
 func Fetch(link string) ([]ReturnData, error) {
@@ -91,7 +108,7 @@ func Fetch(link string) ([]ReturnData, error) {
 func BuildWeekDates() Dates {
 	now := time.Now().UTC()
 
-	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-time.Hour * 2)
 
 	end := start.AddDate(0, 0, 6).
 		Add(time.Hour*23 + time.Minute*59 + time.Second*59 + time.Millisecond*999)

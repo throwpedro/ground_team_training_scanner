@@ -9,6 +9,9 @@ import (
 
 func main() {
 	http.HandleFunc("/", routes.GetGroundTimes)
+
+	println("Listening on port 8080...")
+
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal("Failed to start server: ", err)
 	}
